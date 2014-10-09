@@ -1,0 +1,8 @@
+server: build_wheezy_x86_64.millosh.local
+	hostnames: build_wheezy_x86_64
+	full_hostnames: build_wheezy_x86_64.millosh.local
+	ip_addresses: 
+	groups: millosh, debian, wheezy
+	prompt: (?:###USERNAME###\@.+\$)
+	root_prompt: (?:build_wheezy_x86_64.+?#)
+end

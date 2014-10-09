@@ -1,0 +1,253 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+
+# Goals:
+# 0.0.1: exec commands, send files, recieve files
+# 0.0.2: generalization: ###PROMPT###, separate server conf, catagorizations of servers
+# 0.1.0: different variables per server; conditional according to server config
+# 0.2.0: taking output
+
+import re
+import os, sys, getopt
+import pexpect
+import getpass
+from os.path import *
+from commands import getoutput as go
+
+root_dir = "/home/millosh/rad/software/massadmin/dev"
+bin_dir = root_dir + "/bin"
+etc_dir = root_dir + "/etc/massadmin"
+var_dir = root_dir + "/var"
+job_dir = etc_dir + "/jobs"
+srv_dir = etc_dir + "/servers"
+vrs_dir = etc_dir + "/variables"
+log_dir = var_dir + "/log"
+
+def usage():
+	usage  = "Usage: \n"
+	usage += "\tmassadmin -h -v\n"
+	usage += "\tmassadmin -s server_group1,server_group2"
+	print usage
+
+def take_server_content(filename):
+	server = {}
+	server_content = open(filename).read().split("\n")
+	for sl in range(0,len(server_content)):
+		server_line = server_content[sl].strip()
+		if (server_line != ''):
+			if (server_line != 'end') and (server_line[0] != '#'):
+				key = re.findall("^(.+?):",server_line)[0]
+				value = re.sub(re.escape(key) + ":","",server_line).strip()
+				key = key.strip()
+				server[key] = value
+	return server
+
+def search_for_auth_method(server,options):
+	if 'auth_method' in server:
+		print "ima auth method, dakle!"
+	else:
+		# for now, assuming that auth method is ssh key
+		server['auth_method'] = 'ssh key'
+	return server
+
+def search_for_shell(server,options):
+	if 'shell' in server:
+		print "ima access command, dakle!"
+	else:
+		# for now, assuming that ssh is access command
+		if server['auth_method'] == 'ssh key':
+			if server['access_command'] == 'ssh':
+				cmd = server['access_command'] + " -p " + server['ip_addresses'][0][1] + " " + server['username'] + "@" + server['ip_addresses'][0][0] + " echo $SHELL"
+				server['shell'] = go(cmd)
+			else:
+				print "server access command nije ssh!!!"
+				sys.exit()
+		else:
+			print 'auth method nije ssh key!!!'
+			sys.exit()
+	return server
+
+def setoptions(options):
+	options['access commands'] = False
+	options['add'] = False
+	options['build'] = False
+	options['groups'] = False
+	options['ip addresses'] = False
+	options['names'] = False
+	options['output'] = None
+	options['pres'] = False
+	options['roots'] = False
+	options['servers'] = 'all'
+	options['usernames'] = False
+	options['verbose'] = False
+	return options
+
+def getoptions():
+	options = {}
+	try:
+		opts, args = getopt.getopt(sys.argv[1:], "abc:g:hi:n:or:s:u:v", 
+			[
+				"add", "build", "help", "verbose",
+				"commands=", "groups=", "ips=", "names=", "output=",
+				"pres=", "roots=",
+				"usernames=", "servers=",
+			]
+		)
+	except getopt.GetoptError, err:
+		print str(err)
+		usage()
+		sys.exit(2)
+	options = setoptions(options)
+	for opt, arg in opts:
+		if opt in ('-a', '--add'):
+			options['add'] = True
+		elif opt in ('-b', '--build'):
+			options['build'] = True
+		elif opt in ('-c', '--commands'):
+			options['access commands'] = arg.split(",")
+		elif opt in ('-g', '--groups'):
+			options['groups'] = arg.split(',')
+		elif opt in ('-h', '--help'):
+			usage()
+			sys.exit()
+		elif opt in ('-i', '--ips'):
+			options['ip addresses'] = arg.split(',')
+		elif opt in ('-n', '--names'):
+			options['names'] = arg.split(',')
+		elif opt in ('-o', '--output'):
+			options['output'] = arg
+		elif opt in ('--pres'):
+			options['pres'] = arg.split(',')
+		elif opt in ('-r', '--roots'):
+			options['roots'] = arg.split(" ")
+		elif opt in ('-s', '--servers'):
+			options['servers'] = arg.split(',')
+		elif opt in ('-u', '--usernames'):
+			options['usernames'] = arg.split(" ")
+		elif opt in ('-v', '--verbose'):
+			options['verbose'] = True
+		else:
+			assert False, "unhandled option"
+	return options
+
+def giveipport(ipor):
+	ipors = re.split(":",ipor)
+	ip = ipors[0]
+	if len(ipors) == 1:
+		port = '22'
+	else:
+		port = ipors[1]
+	return ip, port
+def giveusernames(upa):
+	username, password, authmethod = re.split(":",upa)
+	return username, password, authmethod
+
+def giverootusers(rpm):
+	rpms = re.split(":",rpm)
+	if rpms[0] == "user":
+		rootuser = False
+		rootpass = False
+		rootmethod = "user"
+	elif rpms[0] == "sudo":
+		rootmethod = "sudo"
+		if len(rpms) == 1:
+			rootuser = False
+			rootpass = False
+		elif len(rpms) == 2:
+			rootuser = rpms[1]
+			rootpass = False
+		elif len(rpms) == 3:
+			rootuser = rpms[1]
+			rootpass = rpms[2]
+		else:
+			print "giverootusers(): Somthing fishing here!"
+			sys.exit()
+	elif rpms[0] == "su":
+		rootmethod = "su"
+		rootpass = rpms[2]
+		if rpms[1] != '':
+			rootuser = rpms[1]
+		else:
+			rootuser = 'root'
+	return rootuser, rootpass, rootmethod
+
+def serverdesc(options):
+	done = False
+	tries = 0
+	while not done:
+		if not options['names']:
+			options['names'] = raw_input("Server names separated by coma; the first one is the main one: ").split(",")
+		if not options['groups']:
+			options['groups'] = raw_input("Groups separated by comma; the first one is the main one; may be hierarchical \"jobs/company1\": ").split(",")
+		if not options['pres']:
+			options['pres'] = raw_input("Prerequisites separated by comma; \"none\" if no prerequisites: ").split(",")
+		if not options['ip addresses']:
+			options['ip addresses'] = raw_input("IP address separated by comma (4.4.4.4:2222 or just 4.4.4.4): ").split(",")
+		if not options['usernames']:
+			options['usernames'] = raw_input("Usernames, passwords and auth methods separated by space (user:pass:pass or user::key): ").split(" ")
+		if not options['roots']:
+			options['roots'] = raw_input("Root methods, superusers and passwords separated by space (user=provided account is root, su::password, sudo:admin): ").split(" ")
+		if not options['access commands']:
+			options['access commands'] = raw_input("Access commands separated by comma (ssh, scp): ").split(",")
+		print "Options are:"
+		print "\tserver names: " + ','.join(options['names'])
+		print "\tgroups: " + ','.join(options['groups'])
+		print "\tprerequisites: " + ', '.join(options['pres'])
+		print "\tip addresses: " + ', '.join(options['ip addresses'])
+		print "\tusernames, passwords and auth methods: " + ', '.join(options['usernames'])
+		print "\troot methods and passwords: " + ', '.join(options['roots'])
+		print "\taccess commands: " + ', '.join(options['access commands'])
+		yesno = raw_input("Accept (y/n)? ")
+		if yesno in [ 'y', 'yes', ]:
+			done = True
+		else:
+			tries += 1
+			if tries == 1:
+				options = getoptions()
+			elif tries < 3:
+				options = setoptions(options)
+			else:
+				print "Fuck off!"
+				sys.exit()
+	ip, port = giveipport(options['ip addresses'][0])
+	username, password, authmethod = giveusernames(options['usernames'][0])
+	rootuser, rootpass, rootmethod = giverootusers(options['roots'][0])
+	options['profiles'] = {}
+	options['profiles']['default'] = {
+		'name': options['names'][0],
+		'group': options['groups'][0],
+		'pres': options['pres'],
+		'ip': ip,
+		'port': port,
+		'username': username,
+		'password': password,
+		'auth method': authmethod,
+		'root user': rootuser,
+		'root pass': rootpass,
+		'root method': rootmethod,
+		'access command': options['access commands'][0],
+	}
+	print "Defautl profile is: "
+	print "\tserver name: " + options['profiles']['default']['name']
+	print "\tgroup: " + options['profiles']['default']['group']
+	print "\tprerequisites: " + ', '.join(options['profiles']['default']['pres'])
+	print "\tip address: " + options['profiles']['default']['ip']
+	print "\tport: " + options['profiles']['default']['port']
+	print "\tauth method: " + options['profiles']['default']['auth method']
+	print "\tusername: " + options['profiles']['default']['username']
+	print "\tpassword: " + options['profiles']['default']['password']
+	print "\troot method: " + options['profiles']['default']['root method']
+	print "\troot user: " + str(options['profiles']['default']['root user'])
+	print "\troot pass: " + str(options['profiles']['default']['root pass'])
+	print "\taccess command: " + options['profiles']['default']['access command']
+	return options
+
+def addserver(options):
+	options = serverdesc(options)
+	
+	# write options
+
+if __name__ == "__main__":
+	options = getoptions()
+	if options['add']:
+		addserver(options)

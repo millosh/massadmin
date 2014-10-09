@@ -1,0 +1,5 @@
+variable: access command
+	type: replace
+	replaces: job_exec
+	key: $$access_command
+	value: ssh

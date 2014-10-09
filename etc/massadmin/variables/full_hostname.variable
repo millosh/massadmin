@@ -1,0 +1,5 @@
+variable: full hostname
+	type: replace
+	replaces: job_exec
+	key: $$full_hostname
+	value: $full_hostname

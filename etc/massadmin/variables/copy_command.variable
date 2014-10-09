@@ -1,0 +1,5 @@
+variable: copy command
+	type: replace
+	replaces: job_exec
+	key: $$copy_command
+	value: scp

@@ -1,0 +1,5 @@
+variable: username
+	type: input
+	replaces: server_exec, job_exec
+	text: Username: 
+	key: $username

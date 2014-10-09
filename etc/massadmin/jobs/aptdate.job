@@ -1,0 +1,40 @@
+task = aptdate system
+logfile = @python: open(log_dir + '/aptdate_job' + time.strftime("%Y-%m-%d") + '.log','a')
+groups = millosh
+
+all; start: $access_command $full_hostname
+all; expect: $prompt
+	do: sudo -s
+all; expect: (?:\[sudo\] password for $username:)|$root_prompt,
+	if: [sudo] password for $username:
+		do: $password
+all; expect: $root_prompt
+	do: cat /etc/crontab | grep aptdate.sh > /tmp/aptdate-###HOSTNAME###.tmp
+all; local: $copy_command $full_hostname:/tmp/aptdate-$hostname.tmp $var_dir
+all; function: test_file.py
+	if: $_ == doesn't have
+		do: @command_key = continue
+	elif: $_ == has
+		do: @command_key = pass
+	elif: $_ == error
+		do: print
+		do: @string = $hostname: SOMETHING FISHING THERE!
+continue; local: scp /root/programs-base-20110117.tar.bz2 $full_hostname:
+continue; expect: $root_prompt
+	do: rm -rf /tmp/programs
+continue; expect: $root_prompt
+	do: tar xf /home/$username/programs-base-20110117.tar.bz2 -C /tmp
+continue; expect: $root_prompt
+	do: mkdir -p /root/tools
+continue; expect: $root_prompt
+	do: cp -a /tmp/programs/* /root/tools/
+continue; expect: $root_prompt
+	do: rm -rf /tmp/programs
+continue; expect: $root_prompt
+	do: echo '0  5    * * *   root    /root/tools/bin/aptdate.sh' >> /etc/crontab
+continue; expect: $root_prompt
+	do: /root/tools/bin/aptdate.sh &
+all; expect: $root_prompt
+	do: exit
+all; expect: $root_prompt
+	do: exit
