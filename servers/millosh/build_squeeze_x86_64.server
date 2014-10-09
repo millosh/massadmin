@@ -1,0 +1,28 @@
+'server id': 'build_squeeze_x86_64.millosh.local',
+'hostname': 'build_squeeze_x86_64',
+'full hostname': 'build_squeeze_x86_64.millosh.local',
+'access command': 'ssh',
+'distribution': 'Debian',
+'version': 'sid',
+#'prompt': '.+?\@.+',
+'prompt': '(?:squeeze-amd64.+?#)',
+'username': 'millosh',
+'password': '<my password>',
+'pre cmds': [
+	{
+		'type': 'start',
+		'command': 'ssh -l millosh build_squeeze_x86_64.millosh.local',
+	},
+	{
+		'expect': '.+?password:',
+		'command': '<my password>',
+	},
+	{
+		'expect': '.+?\@.+',
+		'command': 'su -',
+	},
+	{       
+		'expect': "Password:",
+		'command': 'milloshDSinit34',
+	},      
+],

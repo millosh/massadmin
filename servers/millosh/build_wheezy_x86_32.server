@@ -1,0 +1,38 @@
+'server id': 'build_lenny_x86_32.millosh.local',
+'hostname': 'build_lenny_x86_32',
+'full hostname': 'build_lenny_x86_32.millosh.local',
+'access command': 'ssh',
+'distribution': 'Debian',
+'version': 'sid',
+#'prompt': '.+?\@.+',
+'prompt': '(?:build32.+?#)',
+'username': 'millosh',
+'password': '<my password>',
+'pre cmds': [
+	{
+		'type': 'start',
+		'command': 'ssh -l millosh build_lenny_x86_32.millosh.local',
+	},
+	{
+		'expect': '.+?\@.+',
+		'command': 'sudo -s',
+	},
+	{       
+		'expect': "(?:\[sudo\] password for .+?:)|.+?build32.+?\#",
+		'command': '<my password>',
+		'optional': {
+			'type': 'simple',
+			'condition': '\[sudo\] password for .+?:',
+		},      
+	},      
+],
+'post cmds': [
+	{
+		'expect': '(?:build32.+?#)',
+		'command': 'exit',
+	},
+	{
+		'expect': '.+?\@.+',
+		'command': 'exit',
+	},
+],

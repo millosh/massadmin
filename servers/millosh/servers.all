@@ -1,0 +1,6 @@
+### conf: v2.0
+
+* build_squeeze_x86_32
+* build_squeeze_x86_64
+* build_wheezy_x86_32
+* build_wheezy_x86_64

@@ -1,0 +1,48 @@
+### example servers file
+
+servers = [
+	{
+		'server id': 'build_wheezy_x86_64.millosh.local',
+		'hostname': 'build_wheezy_x86_64',
+		'full hostname': 'build_wheezy_x86_64.millosh.local',
+		'access command': 'ssh',
+		'distribution': 'Debian',
+		'version': 'wheezy',
+		'prompt': '(?:###USERNAME###\@.+)',
+		'root prompt': '(?:build_wheezy_x86_64.+?#)',
+		'username': 'millosh',
+	},
+	{
+		'server id': 'build_wheezy_x86_32.millosh.local',
+		'hostname': 'build_wheezy_x86_32',
+		'full hostname': 'build_wheezy_x86_32.millosh.local',
+		'access command': 'ssh',
+		'distribution': 'Debian',
+		'version': 'wheezy',
+		'prompt': '(?:###USERNAME###\@.+)',
+		'root prompt': '(?:build_wheezy_x86_32.+?#)',
+		'username': 'millosh',
+	},
+	{
+		'server id': 'build_squeeze_x86_64.millosh.local',
+		'hostname': 'build_squeeze_x86_64',
+		'full hostname': 'build_squeeze_x86_64.millosh.local',
+		'access command': 'ssh',
+		'distribution': 'Debian',
+		'version': 'squeeze',
+		'prompt': '(?:###USERNAME###\@.+)',
+		'root prompt': '(?:build_squeeze_x86_64.+?#)',
+		'username': 'millosh',
+	},
+	{
+		'server id': 'build_squeeze_x86_32.millosh.local',
+		'hostname': 'build_squeeze_x86_32',
+		'full hostname': 'build_squeeze_x86_32.millosh.local',
+		'access command': 'ssh',
+		'distribution': 'Debian',
+		'version': 'squeeze',
+		'prompt': '(?:###USERNAME###\@.+)',
+		'root prompt': '(?:build_squeeze_x86_32.+?#)',
+		'username': 'millosh',
+	},
+]

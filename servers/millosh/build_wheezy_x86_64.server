@@ -1,0 +1,50 @@
+'server id': 'build_wheezy_x86_64.millosh.local',
+'hostname': 'build_wheezy_x86_64',
+'full hostname': 'build_wheezy_x86_64.millosh.local',
+'access command': 'ssh',
+'distribution': 'Debian',
+'version': 'sid',
+#'prompt': '.+?\@.+',
+'prompt': '(?:wheezy64.+?#)',
+'username': 'millosh',
+'password': '<my password>',
+'pre cmds': [
+	{
+		'type': 'start',
+		'command': 'ssh -l millosh feniks.millosh.local',
+	},
+	{
+		'expect': '.+?\@.+',
+		'command': 'ssh -l millosh 192.168.141.141',
+	},
+	{
+		'expect': '.+?password:',
+		'command': '<my pass>',
+	},
+	{
+		'expect': '.+?\@.+',
+		'command': 'sudo -s',
+	},
+	{       
+		'expect': "(?:\[sudo\] password for .+?:)|.+?wheezy64.+?\#",
+		'command': '<my pass>',
+		'optional': {
+			'type': 'simple',
+			'condition': '\[sudo\] password for .+?:',
+		},      
+	},      
+],
+'post cmds': [
+	{
+		'expect': '(?:wheezy64.+?#)',
+		'command': 'exit',
+	},
+	{
+		'expect': '.+?\@.+',
+		'command': 'exit',
+	},
+	{
+		'expect': '.+?\@.+',
+		'command': 'exit',
+	},
+],
